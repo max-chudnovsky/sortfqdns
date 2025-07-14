@@ -33,13 +33,17 @@ except ImportError:
 def parse_fqdns(lines):
     zones = defaultdict(set)
     for line in lines:
-        fqdn = line.strip().lstrip("*.")  # Remove leading '*.'
+        orig_line = line.strip()
+        fqdn = orig_line.lstrip("*.")  # Remove leading '*.' for parsing
         if not fqdn:
             continue
         ext = tldextract.extract(fqdn)
         zone = f"{ext.domain}.{ext.suffix}"
         subdomain = ext.subdomain
-        zones[zone].add(subdomain)  # subdomain may be ''
+        # Restore '*' if original line started with '*.'
+        if orig_line.startswith("*."):
+            subdomain = f"*.{subdomain}" if subdomain else "*"
+        zones[zone].add(subdomain)  # subdomain may be '' or start with '*.'
     return zones
 
 def main():
