@@ -22,6 +22,7 @@ If no input_file is given, defaults to /tmp/fqdns.
 
 import sys
 import os
+from collections import defaultdict
 
 try:
     import tldextract
@@ -30,16 +31,16 @@ except ImportError:
     sys.exit(1)
 
 def parse_fqdns(lines):
-    output = set()
+    zones = defaultdict(set)
     for line in lines:
-        fqdn = line.strip().lstrip("*.")
+        fqdn = line.strip().lstrip("*.")  # Remove leading '*.'
         if not fqdn:
             continue
         ext = tldextract.extract(fqdn)
         zone = f"{ext.domain}.{ext.suffix}"
         subdomain = ext.subdomain
-        output.add(f"{zone}:{subdomain}" if subdomain else f"{zone}:")
-    return output
+        zones[zone].add(subdomain)  # subdomain may be ''
+    return zones
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
@@ -53,9 +54,12 @@ def main():
         sys.exit(1)
     with open(fqdn_file, "r") as f:
         lines = f.readlines()
-    output = parse_fqdns(lines)
-    for entry in sorted(output):
-        print(entry)
+    zones = parse_fqdns(lines)
+
+    for zone in sorted(zones):
+        for sub in sorted(zones[zone]):
+            print(f"{zone}:{sub}")
+        print()  # blank line between domains
 
 if __name__ == "__main__":
     main()
